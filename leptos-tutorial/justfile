@@ -1,0 +1,11 @@
+# List all recipes
+default:
+	just --list --unsorted
+
+# Preview
+preview:
+	trunk serve --open
+
+# format
+fmt:
+	leptosfmt ./**/*.rs

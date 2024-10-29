@@ -1,0 +1,10 @@
+* The Leptos Community and leptos-* Crates
+
+** The Community
+
+- [[https://discord.gg/YdRAhS7eQB][Discord channel]]
+- [[https://github.com/leptos-rs/leptos][Github]]
+
+** Leptos-* crates
+
+- [[https://github.com/leptos-rs/awesome-leptos][Awesome leptos repository]]

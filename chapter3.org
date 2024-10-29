@@ -1,0 +1,78 @@
+* Part 1: Building User Interfaces
+
+* A Basic Component
+
+#+begin_src rust
+#[component]
+fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+
+    view! {
+        <button
+            on:click=move |_| {
+                // on stable, this is set_count.set(3);
+                set_count(3);
+            }
+        >
+            "Click me: "
+            // on stable, this is move || count.get();
+            {move || count()}
+        </button>
+    }
+}
+#+end_src
+
+- ~#[component]~ annotates a function so it can be used as a component
+  in your Leptos application.
+- Component is a function that takes zero or more argument of any type
+  and returns ~impl IntoView~.
+- *create_singal* creates a signal, the basic unit of reactive change
+  and state management in Leptos. It returns ~(getter, setter)~
+
+** Using signals
+
+| Type | Nightly     | Stable          |
+|------+-------------+-----------------|
+| Get  | count()     | count.get()     |
+| Set  | set_count() | set_count.set() |
+
+Docs:
+
+- [[https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html][ReadSignal]]
+- [[https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html][WriteSignal]]
+
+* Dynamic classes
+
+- Class syntax: ~class:~
+  - Takes class name, following the colon.
+  - A value which can be a bool or a function that returns a
+    bool. When value is true, class is added.
+
+#+begin_src rust
+class:red=move || count() % 2 == 1
+#+end_src
+
+Or
+
+#+begin_src rust
+class=("red", move || count() % 2 == 1)
+#+end_src
+
+* Dynamic styles
+
+#+begin_src rust
+style:left=move || format!("{}px", x() + 100)
+#+end_src
+
+* Dynamic attributes
+
+#+begin_src rust
+<progress
+    max="50"
+    // signals are functions, so `value=count` and `value=move || count.get()`
+    // are interchangeable.
+    value=count
+/>
+#+end_src
+
+* Components and Props

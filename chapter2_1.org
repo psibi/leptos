@@ -1,0 +1,21 @@
+* Leptos Development Experience Improvements
+
+** Set up console_error_panic_hook
+
+- Motivation: very unhelpful error message for panic without it.
+
+Steps:
+- ~cargo add console_error_panic_hook~
+- In your main function, add ~console_error_panic_hook::set_once();~
+
+** Editor Autocompletion inside #[component] and #[server]
+
+todo
+
+** Set up leptosfmt With Rust Analyzer (optional)
+
+- For formatting within the ~view!~ macro.
+
+#+begin_src emacs-lisp
+((rustic-mode . ((lsp-rust-analyzer-rustfmt-override-command . '["leptosfmt", "./**/*.rs"]))))
+#+end_src

@@ -1,0 +1,74 @@
+* Getting Started
+
+Two basic paths to getting started with Leptos:
+
+** Client-side rendering (CSR) with Trunk
+
+- Trunk compiles your Leptos app to WebAssembly (WASM) and runs it in
+  the browser like a typical Javascript single-page app (SPA).
+- Under the hood, an auto-generated snippet of JS is used to load the
+  Leptos WASM bundle, so JS must be enabled on the client device for
+  your CSR app to display properly.
+- Advantages:
+  - Faster build times
+  - Quicker iterative deployment cycle.
+- Disadvantages:
+  - Initial load times for your end users are slower compared to a
+    server-side rendering approach.
+  - Usual SEO challenges that come along with using a JS single-page
+    app model apply to Leptos CSR apps as well.
+
+** Full-stack, server-side rendering (SSR) with cargo-leptos
+
+- [[https://github.com/leptos-rs/cargo-leptos][cargo-leptos]]
+- With the Leptos SSR option, your app is rendered to HTML on the
+  server and sent down to the browser.
+- Then WebAssembly is used to instrument the HTML so your app becomes
+  interactive - this process is called 'hydration'.
+- Advantages:
+  - Better initial load times
+  - Optimal SEO scores for your web app
+  - SSR apps can also dramatically simplify working across the
+    server/client boundary via a Leptos feature called "server
+    functions"
+- Disadvantages:
+  - Slower developer iteration loop
+  - Complexity because of hydration
+
+* Hello world
+
+#+begin_src sh
+cargo install trunk
+cargo init leptos-tutorial
+cargo add leptos --features=csr,nightly
+rustup target add wasm32-unknown-unknown
+#+end_src
+
+Nightly feature in Leptos enables the function call syntax for signal
+getters and setters.
+
+Place index.html in the root of the leptos-tutorial directory:
+
+#+begin_src html
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body></body>
+</html>
+#+end_src
+
+main.rs file:
+
+#+begin_src rust
+use leptos::*;
+
+fn main() {
+    mount_to_body(|| view! { <p>"Hello, world!"</p> })
+}
+#+end_src
+
+Preview it via:
+
+#+begin_src sh
+turnk serve --open
+#+end_src
