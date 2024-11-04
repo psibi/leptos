@@ -76,3 +76,183 @@ style:left=move || format!("{}px", x() + 100)
 #+end_src
 
 * Components and Props
+
+* Control and Flow
+
+Code like this can be problematic:
+
+#+begin_src rust
+#[component]
+fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let message = move || {
+        if count() > 5 {
+            logging::log!("{}: rendering Big", count());
+            "Big"
+        } else {
+            logging::log!("{}: rendering Small", count());
+            "Small"
+        }
+    };
+
+    view! {
+        <button
+        class:red=move || count() % 2 == 1
+            on:click=move |_| {
+                set_count.update(|n| *n += 1);
+            }
+        >
+            "Click me: "
+            {move || count()}
+        </button>
+        <p>{message}</p>
+    }
+}
+#+end_src
+
+When you press this button, this would be the behavior:
+- rendering Small
+- rendering Small
+- rendering Small
+- rendering Small
+- rendering Small
+- rendering Big
+- rendering Big
+...
+
+The problem is every time count changes, message is being computed again.
+
+** <Show/>
+
+- Solution for the above problem. Memoizes the ~when~ condition.
+
+#+begin_src rust
+#[component]
+fn Big() -> impl IntoView {
+    logging::log!("Rendering big");
+    "Big"
+}
+
+#[component]
+fn Small() -> impl IntoView {
+    logging::log!("Rendering small");
+    "Small"
+}
+
+#[component]
+fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    view! {
+        <button
+        class:red=move || count() % 2 == 1
+            on:click=move |_| {
+                set_count.update(|n| *n += 1);
+            }
+        >
+            "Click me: "
+            {move || count()}
+        </button>
+        <Show
+          when=move|| {count() > 5}
+          fallback=|| view! {<Small/> }
+        >
+        <Big/>
+        </Show>
+    }
+}
+#+end_src
+
+When you press this button, this would be the behaviour:
+- Rendering small
+- Rendering big
+
+Only two log statements. No more heavy computation, yay!
+
+* Type Conversions
+
+- ~view~ macro doesn't return the most generic wrapping [[https://docs.rs/leptos/latest/leptos/enum.View.html][View]]
+  type. Instead it returns types like ~Fragment~ or
+  ~HtmlElement<Input>~.
+
+Following code will result in a compile error:
+
+#+begin_src rust
+#[component]
+fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let is_odd = move || count() & 1 == 1;
+    view! {
+        <div> {
+            move || match is_odd() {
+                true if count() == 1 => {
+                    // returns HtmlElement<Pre>
+                    view! {<pre>"One"</pre>}
+                },
+                false if count() == 2 => {
+                    // returns HtmlElement<P>
+                    view! {<p>"Two"</p>}
+                },
+                // returns HtmlElement<Textarea>
+                _ => view! { <textarea>{count()}</textarea>}
+            }
+        }
+        <button
+        class:red=move || count() % 2 == 1
+            on:click=move |_| {
+                set_count.update(|n| *n += 1);
+            }
+        >
+            "Click me: "
+            {move || count()}
+        </button>
+        </div>
+    }
+}
+#+end_src
+
+Error:
+
+#+begin_src sh
+= note: expected struct `leptos::HtmlElement<Pre>`
+	   found struct `leptos::HtmlElement<P>`
+#+end_src
+
+Two possible fixes:
+- Use *into_any()* to convert it to ~HtmlElement<AnyElement>~
+- Convert them into view via *into_view()*
+
+Solution with proper type conversion:
+
+#+begin_src src
+#[component]
+fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let is_odd = move || count() & 1 == 1;
+    view! {
+        <div> {
+            move || match is_odd() {
+                true if count() == 1 => {
+                    // returns HtmlElement<Pre>
+                    view! {<pre>"One"</pre>}.into_any()
+                },
+                false if count() == 2 => {
+                    // returns HtmlElement<P>
+                    view! {<p>"Two"</p>}.into_any()
+                },
+                // returns HtmlElement<Textarea>
+                _ => view! { <textarea>{count()}</textarea>}.into_any()
+            }
+        }
+        <button
+        class:red=move || count() % 2 == 1
+            on:click=move |_| {
+                set_count.update(|n| *n += 1);
+            }
+        >
+            "Click me: "
+            {move || count()}
+        </button>
+        </div>
+    }
+}
+#+end_src
