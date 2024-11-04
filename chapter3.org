@@ -518,3 +518,76 @@ Cons:
 
 Pros:
 - No performance downsides.
+
+* Components Children
+
+- Motivation: Passing component to a component.
+
+Two ways:
+- *render props*: Properties that are function that return a view.
+- the *children* prop: Special component property that includes
+  anything you pass as a child to the component. (We already saw that
+  in ~<Show />~ component)
+
+Example showing both the above ways:
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <TakesChildren render_prop=|| view!{ <p>"From render prop!"</p>}>
+        <p>"Hello world"</p>
+        </TakesChildren>
+    }
+}
+
+#[component]
+pub fn TakesChildren<F, IV>(
+    /// Takes a function (type F) that returns anything that can be
+    /// converted into a View (type IV)
+    render_prop: F,
+    /// `children` takes the `Children` type
+    children: Children,
+) -> impl IntoView
+where
+    F: Fn() -> IV,
+    IV: IntoView,
+{
+    view! {
+        <h2>"Render Prop"</h2>
+        {render_prop()}
+
+        <h2>"Children"</h2>
+        {children()}
+    }
+}
+#+end_src
+
+** Manipulating Childrens
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <WrapsChildren>
+            "A"
+            "B"
+            "C"
+        </WrapsChildren>
+    }
+}
+
+#[component]
+pub fn WrapsChildren(children: Children) -> impl IntoView {
+    // Fragment has `nodes` field that contains a Vec<View>
+    let children = children()
+        .nodes
+        .into_iter()
+        .map(|child| view! { <li>{child}</li> })
+        .collect_view();
+
+    view! {
+        <ul>{children}</ul>
+    }
+}
+#+end_src

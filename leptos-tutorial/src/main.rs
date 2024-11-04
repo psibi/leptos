@@ -1,3 +1,4 @@
+use ev::MouseEvent;
 use leptos::*;
 
 fn main() {
@@ -8,29 +9,26 @@ fn main() {
 }
 
 #[component]
-fn App() -> impl IntoView {
-    let (count, set_count) = create_signal(0);
-    let double_count = move || count() * 2;
-
+pub fn App() -> impl IntoView {
     view! {
-        <button
-        class:red=move || count() % 2 == 1
-            on:click=move |_| {
-                set_count.update(|n| *n += 1);
-            }
-        >
-            "Click me: "
-            {move || count()}
-        </button>
-
-        <ProgressBar max=50 progress=count/>
-        <ProgressBar max=50 progress=double_count/>
+        <WrapsChildren>
+            "A"
+            "B"
+            "C"
+        </WrapsChildren>
     }
 }
 
 #[component]
-fn ProgressBar(#[prop(default = 100)] max: u16, progress: ReadSignal<i32>) -> impl IntoView {
+pub fn WrapsChildren(children: Children) -> impl IntoView {
+    // Fragment has `nodes` field that contains a Vec<View>
+    let children = children()
+        .nodes
+        .into_iter()
+        .map(|child| view! { <li>{child}</li> })
+        .collect_view();
+
     view! {
-            <progress max=max value=progress/>
+        <ul>{children}</ul>
     }
 }
