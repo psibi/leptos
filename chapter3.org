@@ -77,6 +77,8 @@ style:left=move || format!("{}px", x() + 100)
 
 * Components and Props
 
+todo
+
 * Control and Flow
 
 Code like this can be problematic:
@@ -325,3 +327,194 @@ fn NumericInput() -> impl IntoView {
     }
 }
 #+end_src
+
+* Parent Child communication
+
+- We already saw how to communicate between a parent and a child via
+  props: Use ReadSignal, a Signal or MaybeSignal as a prop.
+- But how can a child communicate with a parent ? ie sending state
+  changes back to the parent.
+
+** Pass a WriteSignal
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        <ButtonA setter=set_toggled/>
+    }
+}
+
+#[component]
+pub fn ButtonA(setter: WriteSignal<bool>) -> impl IntoView {
+    view! {
+        <button
+            on:click=move |_| setter.update(|value| *value = !*value)
+        >
+            "Toggle"
+        </button>
+    }
+}
+#+end_src
+
+Cons:
+- Hard to reason your code.
+
+** Use a Callback
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        <ButtonB on_click=move |_| set_toggled.update(|value| *value = !*value)/>
+    }
+}
+
+
+#[component]
+pub fn ButtonB(#[prop(into)] on_click: Callback<MouseEvent>) -> impl IntoView
+{
+    view! {
+        <button on:click=on_click>
+            "Toggle"
+        </button>
+    }
+}
+#+end_src
+
+Cons:
+- Logic to mutate signal exists in ~<App />~ and not in ~<ButtonB />~
+
+*** Use Closure instead of Callback
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        <ButtonB on_click=move |_| set_toggled.update(|value| *value = !*value)/>
+    }
+}
+
+#[component]
+pub fn ButtonB<F>(on_click: F) -> impl IntoView
+where
+    F: Fn(MouseEvent) + 'static,
+{
+    view! {
+        <button on:click=on_click>
+            "Toggle"
+        </button>
+    }
+}
+#+end_src
+
+Cons:
+- Logic to mutate signal exists in ~<App />~ and not in ~<ButtonB />~
+
+** Use an Event Listener
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        // note the on:click instead of on_click
+        // this is the same syntax as an HTML element event listener
+        <ButtonC on:click=move |_| set_toggled.update(|value| *value = !*value)/>
+    }
+}
+
+
+#[component]
+pub fn ButtonC() -> impl IntoView {
+    view! {
+        <button>"Toggle"</button>
+    }
+}
+#+end_src
+
+- This works by adding ~on:~ event listener to *each* element that
+  ~<ButtonC/>~ returns. (In this case it's just one button)
+
+** Providing a Context
+
+Imagine having a deeply nested component tree:
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        <Layout/>
+    }
+}
+
+#[component]
+pub fn Layout() -> impl IntoView {
+    view! {
+        <header>
+            <h1>"My Page"</h1>
+        </header>
+        <main>
+            <Content/>
+        </main>
+    }
+}
+
+#[component]
+pub fn Content() -> impl IntoView {
+    view! {
+        <div class="content">
+            <ButtonD/>
+        </div>
+    }
+}
+
+#[component]
+pub fn ButtonD<F>() -> impl IntoView {
+    todo!()
+}
+#+end_src
+
+Now <ButtonD/> is no longer a direct child of <App/>, so you can’t
+simply pass your WriteSignal to its props. You can do something called
+"prop drilling", but that will lead to a mess.
+
+Soluting: Using the Context API. :-)
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (toggled, set_toggled) = create_signal(false);
+    // share `set_toggled` with all children of this component
+    provide_context(set_toggled);
+    view! {
+        <p>"Toggled? " {toggled}</p>
+        <ButtonC/>
+    }
+}
+
+#[component]
+pub fn ButtonC() -> impl IntoView {
+    let setter = use_context::<WriteSignal<bool>>().expect("to have found the setter provided");
+    let handler = move |_| setter.update(|value| *value = !*value);
+    view! {
+        <button on:click=handler>"Toggle"</button>
+    }
+}
+#+end_src
+
+Cons:
+- Should be used with caution as it allows you to mutate state from
+  arbitrary parts of the code.
+
+Pros:
+- No performance downsides.
