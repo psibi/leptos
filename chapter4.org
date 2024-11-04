@@ -1,0 +1,122 @@
+* Reactivity
+
+Leptos is built on top of a fine-grained reactive system, designed to
+run expensive side effects (like rendering something in a browser, or
+making a network request) as infrequently as possible in response to
+change, reactive values.
+
+* Working with Signals
+
+- create_signal() returns (ReadSignal, WriteSignal)
+  - [[https://docs.rs/leptos/latest/leptos/fn.create_signal.html][API documentation]]
+
+* Getting and Setting
+
+- .get() clones the current value of the signal and tracks any future
+  changes to the value reactively.
+- .with() takes a function, which receives the current value of the
+  signal by reference (&T), and tracks any future changes.
+- .set() replaces the current value of the signal and notifies any
+  subscribers that they need to update.
+- .update() takes a function, which receives a mutable reference to
+  the current value of the signal (&mut T), and notifies any
+  subscribers that they need to update.
+
+** Use case for with
+
+- .get() does a clone and can be expensive.
+
+#+begin_src rust
+let (names, set_names) = create_signal(Vec::new());
+if names().is_empty() {
+    set_names(vec!["Alice".to_string()]);
+}
+#+end_src
+
+Pretty expensive code: Since names() will have to clone the entire
+vec. Instead this is a better code:
+
+#+begin_src rust
+let (names, set_names) = create_signal(Vec::new());
+if names.with(|names| names.is_empty()) {
+    set_names.update(|names| names.push("Alice".to_string()));
+}
+#+end_src
+
+Also check out these macros:
+- [[https://docs.rs/leptos/latest/leptos/macro.with.html][with!]]
+- [[https://docs.rs/leptos/latest/leptos/macro.update.html][update!]]
+
+* Making signals depend on each other
+
+** B is a function of A
+
+- Create a signal for A and a derived signal or memo for B.
+
+#+begin_src rust
+let (count, set_count) = create_signal(1); // A
+let derived_signal_double_count = move || count() * 2; // B is a function of A
+let memoized_double_count = create_memo(move |_| count() * 2); // B is a function of A
+#+end_src
+
+- [[https://docs.rs/leptos/latest/leptos/fn.create_memo.html][create_memo]] docs
+
+** C is a function of A and some other thing B.
+
+#+begin_src rust
+let (first_name, set_first_name) = create_signal("Bridget".to_string()); // A
+let (last_name, set_last_name) = create_signal("Jones".to_string()); // B
+let full_name = move || with!(|first_name, last_name| format!("{first_name} {last_name}")); // C is a function of A and B
+#+end_src
+
+** A and B are independent signals, but sometimes updated at the same time.
+
+#+begin_src rust
+let (age, set_age) = create_signal(32); // A
+let (favorite_number, set_favorite_number) = create_signal(42); // B
+// use this to handle a click on a `Clear` button
+let clear_handler = move |_| {
+  // update both A and B
+  set_age(0);
+  set_favorite_number(0);
+};
+#+end_src
+
+** Create an effect to write to B whenever A changes
+
+Officially discourage because:
+- Always less efficient.
+- Increases your chance of accidentally creating things like infinite
+  loops or re-running effects.
+
+More details on [[https://docs.rs/leptos/latest/leptos/fn.create_effect.html][create_effects]] docs.
+
+* Responding to Changes with create_effect
+
+Reactivity works in two halves:
+- Signals: Individual reactive values.
+- Effects: Signals notifies effects that they need to run again.
+
+- create_effect() takes a function as its argument.
+  - It immediately runs the function.
+  - If you access any reactive signal inside that function, it
+    registers the fact that the effect depends on that signal with the
+    reactive runtime. Whenever one of the signals that the effect
+    depends on changes, the effect runs again.
+
+#+begin_src rust
+let (a, set_a) = create_signal(0);
+let (b, set_b) = create_signal(0);
+
+create_effect(move |_| {
+  // immediately prints "Value: 0" and subscribes to `a`
+  log::debug!("Value: {}", a());
+});
+#+end_src
+
+
+- By default, effects do not run on server. This means you can call
+  browser-specific APIs within the effect function without causing
+  issues.
+- If you need an effect to run on the server, use
+  create_isomorphic_effect.
