@@ -252,7 +252,52 @@ todo
 
 * Forms and Inputs
 
-todo
+** Controlled Inputs
+
+- In a "controlled input" the framework controls the state of the input element.
+
+#+begin_src rust
+#[component]
+fn SomeInput() -> impl IntoView {
+    let (name, set_name) = create_signal("Controlled input".to_owned());
+    let input_handler = move |ev| {
+        set_name(event_target_value(&ev));
+    };
+    view! {
+        <input type="text" on:input=input_handler prop:value=name />
+        <p>"Name is: " {name}</p>
+    }
+}
+#+end_src
+
+** Uncontrolled Input
+
+- In an uncontrolled input, the browser controls the state of the
+  input element.
+
+#+begin_src rust
+#[component]
+fn SomeInput() -> impl IntoView {
+    let (name, set_name) = create_signal("Uncontrolled input".to_owned());
+    let input_element: NodeRef<html::Input> = create_node_ref();
+    let on_submit = move |ev: SubmitEvent| {
+        // To stop page from reloading
+        ev.prevent_default();
+        let value = input_element().expect("<input> should be mounted").value();
+        set_name(value);
+    };
+    view! {
+        <form on:submit=on_submit>
+        <input type="text" value=name node_ref=input_element />
+        <input type="submit" value="Submit" />
+        </form>
+        <p>"Name is: " {name}</p>
+    }
+}
+#+end_src
+
+- NodeRef is a kind of reactive smart pointer: we can use it to access
+  the underlying DOM node.
 
 * Control and Flow
 

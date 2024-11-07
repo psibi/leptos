@@ -1,4 +1,4 @@
-use ev::MouseEvent;
+use ev::{MouseEvent, SubmitEvent};
 use leptos::*;
 
 fn main() {
@@ -8,26 +8,28 @@ fn main() {
     })
 }
 
-
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <ProgressBar/>
-        <ProgressBar progress=Box::new(|| 5)/>
+        <SomeInput />
     }
 }
 
 #[component]
-fn ProgressBar(
-    #[prop(optional)] progress: Option<Box<dyn Fn() -> i32>>,
-) -> impl IntoView {
-    progress.map(|progress| {
-        view! {
-            <progress
-                max=100
-                value=progress
-            />
-            <br/>
-        }
-    })
+fn SomeInput() -> impl IntoView {
+    let (name, set_name) = create_signal("Uncontrolled input".to_owned());
+    let input_element: NodeRef<html::Input> = create_node_ref();
+    let on_submit = move |ev: SubmitEvent| {
+        // To stop page from reloading
+        ev.prevent_default();
+        let value = input_element().expect("<input> should be mounted").value();
+        set_name(value);
+    };
+    view! {
+        <form on:submit=on_submit>
+        <input type="text" value=name node_ref=input_element />
+        <input type="submit" value="Submit" />
+        </form>
+        <p>"Name is: " {name}</p>
+    }
 }
