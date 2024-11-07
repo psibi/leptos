@@ -77,6 +77,181 @@ style:left=move || format!("{}px", x() + 100)
 
 * Components and Props
 
+- Props are properties that let you pass additional information into
+  the component.
+
+Example with a property:
+
+#+begin_src rust
+#[component]
+fn ProgressBar(
+    progress: ReadSignal<i32>
+) -> impl IntoView {
+    view! {
+        <progress
+            max="50"
+            // now this works
+            value=progress
+        />
+    }
+}
+#+end_src
+
+** Optional props
+
+Example code:
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (progress, set_progress) = create_signal(30);
+    view! {
+        <ProgressBar progress=progress max=100/>
+        <ProgressBar progress=progress max=40/>
+        <ProgressBar progress=progress/>
+    }
+}
+
+#[component]
+fn ProgressBar(
+    #[prop(optional)]
+    max: u16,
+    progress: ReadSignal<i32>
+) -> impl IntoView {
+    view! {
+        <progress
+            max=max
+            // now this works
+            value=progress
+        />
+    }
+}
+#+end_src
+
+- The default value if it's not passed is going to be
+  ~Default::default()~ and it is going to be zero.
+
+** Default props
+
+#+begin_src rust
+#[component]
+fn ProgressBar(
+    #[prop(default = 100)]
+    max: u16,
+    progress: ReadSignal<i32>
+) -> impl IntoView {
+    view! {
+        <progress
+            max=max
+            // now this works
+            value=progress
+        />
+    }
+}
+#+end_src
+
+** Generic Props
+
+First method: Use closures
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (progress, set_progress) = create_signal(30);
+    let double = move || progress() *2;
+    view! {
+        <ProgressBar progress=double max=100/>
+        <ProgressBar progress=progress max=40/>
+    }
+}
+
+#[component]
+fn ProgressBar(
+    #[prop(optional)]
+    max: u16,
+    progress: impl Fn() -> i32 + 'static
+) -> impl IntoView {
+    view! {
+        <progress
+            max=max
+            value=progress
+        />
+    }
+}
+#+end_src
+
+Second method: Using into props
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (progress, set_progress) = create_signal(30);
+    let double = move || progress() *2;
+    view! {
+        <ProgressBar progress=progress max=40/>
+        <ProgressBar progress=Signal::derive(double) max=100/>
+    }
+}
+
+#[component]
+fn ProgressBar(
+    #[prop(optional)]
+    max: u16,
+    #[prop(into)]
+    progress: Signal<i32>
+) -> impl IntoView {
+    view! {
+        <progress
+            max=max
+            value=progress
+        />
+    }
+}
+#+end_src
+
+Observation:
+
+- Signal represents readable reactive signal. [[https://docs.rs/leptos/latest/leptos/struct.Signal.html][Library docs]]
+- [[https://docs.rs/leptos/latest/leptos/enum.MaybeSignal.html][MaybeSignal]] is another type that's good to be aware of. Represents
+  both static as well as reactive signal.
+
+** Optional Generic props
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <ProgressBar/>
+        <ProgressBar progress=Box::new(|| 5)/>
+    }
+}
+
+#[component]
+fn ProgressBar(
+    #[prop(optional)] progress: Option<Box<dyn Fn() -> i32>>,
+) -> impl IntoView {
+    progress.map(|progress| {
+        view! {
+            <progress
+                max=100
+                value=progress
+            />
+            <br/>
+        }
+    })
+}
+#+end_src
+
+* Iteration
+
+todo
+
+* Iteration over More Complex Data
+
+todo
+
+* Forms and Inputs
+
 todo
 
 * Control and Flow
