@@ -8,27 +8,26 @@ fn main() {
     })
 }
 
+
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <WrapsChildren>
-            "A"
-            "B"
-            "C"
-        </WrapsChildren>
+        <ProgressBar/>
+        <ProgressBar progress=Box::new(|| 5)/>
     }
 }
 
 #[component]
-pub fn WrapsChildren(children: Children) -> impl IntoView {
-    // Fragment has `nodes` field that contains a Vec<View>
-    let children = children()
-        .nodes
-        .into_iter()
-        .map(|child| view! { <li>{child}</li> })
-        .collect_view();
-
-    view! {
-        <ul>{children}</ul>
-    }
+fn ProgressBar(
+    #[prop(optional)] progress: Option<Box<dyn Fn() -> i32>>,
+) -> impl IntoView {
+    progress.map(|progress| {
+        view! {
+            <progress
+                max=100
+                value=progress
+            />
+            <br/>
+        }
+    })
 }
