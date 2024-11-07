@@ -15,3 +15,34 @@ Arguments:
 - Source signal which will generate a new ~Future~ whenever it changes.
 - A fetcher function which takes the data from the signal and returns
   a future.
+
+#+begin_src rust
+// our source signal: some synchronous, local state
+let (count, set_count) = create_signal(0);
+
+// our resource
+let async_data = create_resource(
+    count,
+    // every time `count` changes, this will run
+    |value| async move {
+        logging::log!("loading data from API");
+        load_data(value).await
+    },
+);
+#+end_src
+
+Another example:
+
+#+begin_src rust
+let once = create_resource(|| (), |_| async move { load_data().await });
+view! {
+    <h1>"My Data"</h1>
+    {move || match once.get() {
+        None => view! { <p>"Loading..."</p> }.into_view(),
+        Some(data) => view! { <ShowData data/> }.into_view()
+    }}
+}
+#+end_src
+
+
+* <Suspense />
