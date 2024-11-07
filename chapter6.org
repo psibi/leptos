@@ -1,0 +1,17 @@
+* Async
+
+Usecase: Loading something from the API etc.
+
+* Loading data with Resources
+
+- Type: [[https://docs.rs/leptos/latest/leptos/struct.Resource.html][Resource]]
+  - Signal that reflects that the current state of an asynchronous task.
+  - Allows to integrate with async Futures.
+  - Created using [[https://docs.rs/leptos/latest/leptos/fn.create_resource.html][create_resource]] function.
+
+** create_resource function
+
+Arguments:
+- Source signal which will generate a new ~Future~ whenever it changes.
+- A fetcher function which takes the data from the signal and returns
+  a future.
