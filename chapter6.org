@@ -34,15 +34,73 @@ let async_data = create_resource(
 Another example:
 
 #+begin_src rust
-let once = create_resource(|| (), |_| async move { load_data().await });
-view! {
-    <h1>"My Data"</h1>
-    {move || match once.get() {
-        None => view! { <p>"Loading..."</p> }.into_view(),
-        Some(data) => view! { <ShowData data/> }.into_view()
-    }}
+[component]
+fn SomeComponent() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+
+    let async_data = create_resource(count, |value| async move {
+        logging::log!("loading data from API");
+        "Some data from API".to_owned()
+    });
+
+    let click_handler = move |_| set_count.update(|count| *count += 1);
+
+    view! {
+        <button on:click=click_handler>"Click me: " {move || count()} </button>
+        {
+            move || match async_data.get() {
+                None => view! { <p>"Loading..."</p>}.into_view(),
+                Some(data) => view! { <p> {data} </p>}.into_view()
+        }
+        }
+    }
 }
 #+end_src
 
 
 * <Suspense />
+
+- In the last example, we handle the loading case ourselves. What if
+  there are 100 such resources ? Pattern matching on all of them
+  becomes annoying.
+- Solution: Suspense component
+- It has a ~fallback~ prop and children. When they are all loaded, it
+  shows the children.
+
+#+begin_src rust
+#[component]
+fn SomeComponent() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let (count2, set_count2) = create_signal(0);
+
+    let async_data_one = create_resource(count, |value| async move {
+        "Some data from API (1)".to_owned()
+    });
+
+    let async_data_two = create_resource(count2, |value| async move {
+        logging::log!("loading data from API (2)");
+        "Some data from API (2)".to_owned()
+    });
+
+    let click_handler = move |_| set_count.update(|count| *count += 1);
+
+    view! {
+        <button on:click=click_handler>"Click me: " {move || count()} </button>
+        <Suspense fallback=move || view! {<p>"Loading..."</p>} >
+        <h2> "My data:" </h2>
+        <div> "Count 1:" {async_data_one.get().map(|a| view! {<p>{a}</p>})} </div>
+        <div> "Count 2:" {async_data_two.get().map(|a| view! {<p>{a}</p>})} </div>
+        </Suspense>
+    }
+}
+#+end_src
+
+* <Await />
+
+- Motivation: Waiting for some future to be resolve before rendering.
+  - It only polls the ~Future~ once and does not respond to any
+    reactive changes.
+  - Does not render anything until the ~Future~ resolves.
+  - After the ~Future~ resolves, it binds the data to the variable
+    name you chose and then renders its children with the variable in
+    scope.

@@ -1,5 +1,7 @@
 use ev::{MouseEvent, SubmitEvent};
 use leptos::*;
+use std::thread;
+use std::time::Duration;
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -11,25 +13,32 @@ fn main() {
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <SomeInput />
+        <SomeComponent />
     }
 }
 
 #[component]
-fn SomeInput() -> impl IntoView {
-    let (name, set_name) = create_signal("Uncontrolled input".to_owned());
-    let input_element: NodeRef<html::Input> = create_node_ref();
-    let on_submit = move |ev: SubmitEvent| {
-        // To stop page from reloading
-        ev.prevent_default();
-        let value = input_element().expect("<input> should be mounted").value();
-        set_name(value);
-    };
+fn SomeComponent() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let (count2, set_count2) = create_signal(0);
+
+    let async_data_one = create_resource(count, |value| async move {
+        "Some data from API (1)".to_owned()
+    });
+
+    let async_data_two = create_resource(count2, |value| async move {
+        logging::log!("loading data from API (2)");
+        "Some data from API (2)".to_owned()
+    });
+
+    let click_handler = move |_| set_count.update(|count| *count += 1);
+
     view! {
-        <form on:submit=on_submit>
-        <input type="text" value=name node_ref=input_element />
-        <input type="submit" value="Submit" />
-        </form>
-        <p>"Name is: " {name}</p>
+        <button on:click=click_handler>"Click me: " {move || count()} </button>
+        <Suspense fallback=move || view! {<p>"Loading..."</p>} >
+        <h2> "My data:" </h2>
+        <div> "Count 1:" {async_data_one.get().map(|a| view! {<p>{a}</p>})} </div>
+        <div> "Count 2:" {async_data_two.get().map(|a| view! {<p>{a}</p>})} </div>
+        </Suspense>
     }
 }
