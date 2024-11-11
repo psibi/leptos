@@ -104,3 +104,61 @@ fn SomeComponent() -> impl IntoView {
   - After the ~Future~ resolves, it binds the data to the variable
     name you chose and then renders its children with the variable in
     scope.
+
+#+begin_src rust
+async fn fetch_monkeys(monkey: i32) -> i32 {
+    // maybe this didn't need to be async
+    monkey * 2
+}
+
+#[component]
+fn SomeComponent() -> impl IntoView {
+    view! {
+    <Await
+        // `future` provides the `Future` to be resolved
+        future=|| fetch_monkeys(3)
+        // the data is bound to whatever variable name you provide
+        let:data
+    >
+        // you receive the data by reference and can use it in your view here
+        <p>{*data} " little monkeys, jumping on the bed."</p>
+    </Await>
+    }
+}
+#+end_src
+
+* <Transition />
+
+- In the *<Suspense />* example, if you keep reloading the data - it
+  keeps flickering to ~"Loading..."~.
+- If you don't want that, you can use *<Transition />* component.
+- It will show the fallback only for the first time. For subsequent
+  load, it shows the old data untill the new data are ready.
+
+#+begin_src rust
+#[component]
+fn SomeComponent() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    let (count2, set_count2) = create_signal(0);
+
+    let async_data_one = create_resource(count, |value| async move {
+        "Some data from API (1)".to_owned()
+    });
+
+    let async_data_two = create_resource(count2, |value| async move {
+        logging::log!("loading data from API (2)");
+        "Some data from API (2)".to_owned()
+    });
+
+    let click_handler = move |_| set_count.update(|count| *count += 1);
+
+    view! {
+        <button on:click=click_handler>"Click me: " {move || count()} </button>
+        <Transition fallback=move || view! {<p>"Loading..."</p>} >
+        <h2> "My data:" </h2>
+        <div> "Count 1:" {async_data_one.get().map(|a| view! {<p>{a}</p>})} </div>
+        <div> "Count 2:" {async_data_two.get().map(|a| view! {<p>{a}</p>})} </div>
+        </Transition>
+    }
+}
+#+end_src
