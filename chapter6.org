@@ -162,3 +162,8 @@ fn SomeComponent() -> impl IntoView {
     }
 }
 #+end_src
+
+* <Action />
+
+- Motivation: When asyc data is getting loaded, we would like to if
+  it's pending or it's got the value.
