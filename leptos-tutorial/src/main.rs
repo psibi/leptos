@@ -13,40 +13,30 @@ fn main() {
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <SomeComponent />
-    }
-}
-
-async fn some_async_function(input: &String) -> String {
-    match &input[..] {
-        "hi" => "hello".to_owned(),
-        "bye" => "Bye bye".to_owned(),
-        _ => "Hmm..".to_owned(),
+        <LoggedIn fallback=move || view!{<p>"Not logged in"</p>}>
+        <p>"I'm logged in"</p>
+        </LoggedIn>
     }
 }
 
 #[component]
-fn SomeComponent() -> impl IntoView {
-    let (count, set_count) = create_signal(0);
-    let action = create_action(|input: &String| {
-        let input = input.to_owned();
-        async move { some_async_function(&input).await }
-    });
-
-    let click_handler = move |_| {
-        set_count.update(|count| *count += 1);
-        let count = count();
-        if count > 10 {
-            action.dispatch("bye".to_owned());
-        } else if count > 3 {
-            action.dispatch("hi".to_owned());
-        }
-    };
-
-    let value = action.value();
-
+pub fn LoggedIn<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
+where
+    F: Fn() -> IV + 'static,
+    IV: IntoView,
+{
     view! {
-        <button on:click=click_handler>"Click me: " {move || count()} </button>
-        <p>"Data: " {move || format!("{:#?}", value()) }</p>
+        <Suspense
+            fallback=|| ()
+        >
+            <Show
+                // check whether user is verified
+                // by reading from the resource
+                when=move || todo!()
+                fallback=fallback
+            >
+                {children()}
+            </Show>
+        </Suspense>
     }
 }
