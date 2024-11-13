@@ -1,0 +1,80 @@
+* Global State Management
+
+Approaches:
+- Use router to drive global state via URL.
+- Passing signals through context.
+- Creating a global state struct and creating lenses into it with
+  create_slice
+
+** Using Router
+
+Pros:
+- Usually the best way since the data can be accessed from any component.
+- There are native HTML elements like ~<form>~ and ~<a>~ that solely
+  exist to update the state.
+- Perists across page loads and across devices.
+
+Will see code in the Router chapter.
+
+** Passing Signals through Context
+
+-  If you want to create a global signal that holds some piece of
+  state, you can provide it and access it via context anywhere in the
+  *descendants* of the component where you provide it.
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    let (count, set_count) = create_signal(0);
+    provide_context(count);
+    view! {
+        <SomeComponent />
+    }
+}
+
+#[component]
+pub fn SomeComponent() -> impl IntoView {
+    let count = expect_context::<ReadSignal<i32>>();
+
+    view! {
+        <button >"Click me: " {move || count()} </button>
+    }
+}
+#+end_src
+
+
+** Global Struct State and slices
+
+#+begin_src rust
+#[derive(Clone, Debug, Default)]
+struct GlobalState {
+    count: i32,
+    name: String,
+}
+
+#[component]
+pub fn App() -> impl IntoView {
+    provide_context(create_rw_signal(GlobalState::default()));
+    view! {
+        <SomeComponent />
+    }
+}
+
+#[component]
+pub fn SomeComponent() -> impl IntoView {
+    let state = expect_context::<RwSignal<GlobalState>>();
+    let (count, set_count) = create_slice(
+        // We take slice from state
+        state,
+        // Our getter returns a slice of the data
+        |state| state.count,
+        // Our setter describes how to mutate the data
+        |state, n| state.count = n,
+    );
+
+    let click_handler = move |_| set_count(count() + 1);
+    view! {
+        <button on:click=click_handler>"Click me: " {move || count()} </button>
+    }
+}
+#+end_src

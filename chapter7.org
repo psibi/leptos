@@ -1,0 +1,75 @@
+* Projecting Children
+
+- Good to read about <Show /> component in [[./chapter3.org][Chapter 3]] and <Suspense />
+  component in [[./chapter6.org][Chapter 6]].
+
+This code won't compile:
+
+#+begin_src rust
+pub fn LoggedIn<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
+where
+    F: Fn() -> IV + 'static,
+    IV: IntoView,
+{
+    view! {
+        <Suspense
+            fallback=|| ()
+        >
+            <Show
+                // check whether user is verified
+                // by reading from the resource
+                when=move || todo!()
+                fallback=fallback
+            >
+                {children()}
+            </Show>
+        </Suspense>
+    }
+}
+#+end_src
+
+- Show component will show the children component when the condition
+  becomes true. Till it is false, it will show fallback.
+- Suspense component will be showing fallback which is nothing till
+  children() is loaded.
+- You want to pass the children of LoggedIn component, through the
+  Suspense component to become the children of Show component. This is
+  called *projection*.
+
+* Solution
+
+- Compile error is due to ownership issue.
+  - [[https://docs.rs/leptos/latest/leptos/fn.Suspense.html][Function Suspense]] definition and it's [[https://docs.rs/leptos/latest/leptos/struct.SuspenseProps.html][prop]] definition. Note how
+    children has static lifetime in it.
+  - Similary [[https://docs.rs/leptos/latest/leptos/fn.Show.html][Show]] and it's [[https://docs.rs/leptos/latest/leptos/struct.ShowProps.html][prop]] has a static lifetime.
+- Solution: [[https://docs.rs/leptos/latest/leptos/fn.store_value.html][store_value]] primitive
+  - Stores a value in the reactive system, handling ownership off to
+    the framework in exchange for a reference.
+
+Working code:
+
+#+begin_src rust
+#[component]
+pub fn LoggedIn<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
+where
+    F: Fn() -> IV + 'static,
+    IV: IntoView,
+{
+    let fallback = store_value(fallback);
+    let children = store_value(children);
+    view! {
+        <Suspense
+            fallback=|| ()
+        >
+            <Show
+                // check whether user is verified
+                // by reading from the resource
+                when=move || false
+        fallback=move || fallback.with_value(|fallback| fallback())
+            >
+        {children.with_value(|children| children())}
+            </Show>
+        </Suspense>
+    }
+}
+#+end_src
