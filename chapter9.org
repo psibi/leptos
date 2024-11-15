@@ -1,0 +1,220 @@
+* Router
+
+- Add dependency:
+
+#+begin_src sh
+cargo add leptos_router --features=csr
+#+end_src
+
+- Relevant imports:
+
+#+begin_src rust
+use leptos_router::{Route, RouteProps, Router, RouterProps, Routes, RoutesProps};
+#+end_src
+
+* <Router />
+
+- There should be only one ~<Router />~ component in your application
+  since it will change global state.
+
+* <Routes />
+
+- You should have only one ~<Routes />~ component.
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <Router>
+        <Routes>
+        <Route path="/" view=Home/>
+        <Route path="/users" view=|| view! {<h1>"Users" </h1>}/>
+        <Route path="/users/:id" view=|| view! {<h1>"User {id}" </h1>}/>
+        <Route path="/*any" view=|| view! {<h1>"Not Found" </h1>}/>
+        </Routes>
+        </Router>
+    }
+}
+
+#[component]
+pub fn Home() -> impl IntoView {
+    view! {
+        <h1>"Home page"</h1>
+    }
+}
+#+end_src
+
+* Nested routes
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <Router>
+        <Routes>
+        <Route path="/" view=Home/>
+        <Route path="/users" view=Users>
+          <Route path=":id" view=|| view! {<h1>"User {id}" </h1>}/>
+          <Route path="test" view=|| view! {<h1>"Test user"</h1>}></Route>
+          <Route path="" view=|| view! {<h1>"Default user"</h1>}></Route>
+        </Route>
+        </Routes>
+        </Router>
+    }
+}
+
+#[component]
+fn Users() -> impl IntoView {
+    view! {
+        <div>
+        <h1>"Users" </h1>
+        <Outlet />
+        </div>
+    }
+}
+
+#[component]
+pub fn Home() -> impl IntoView {
+    view! {
+        <h1>"Home page"</h1>
+    }
+}
+#+end_src
+
+- ~/~ renders Home page
+- ~/users~ renders Default user
+- ~/users/test/~ renders Test user
+- ~/users/3~ renders Users Id
+
+Also observe how the ~<Outlet />~ component being used in the parent
+component of the nested routes.
+
+* Params and Queries
+
+Two ways:
+
+- Route params: ~/users/:id~
+- Route queries: ~/search?q=Foo~
+
+Accessing params and queries via the following typed API:
+
+- use_query
+- use_params
+
+Or the following untyped API:
+
+- use_query_map
+- use_params_map
+
+Example source code:
+
+#+begin_src rust
+#[derive(Params, PartialEq, Clone)]
+struct UserParam {
+    id: u32,
+}
+
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <Router>
+        <Routes>
+        <Route path="/" view=Home/>
+        <Route path="/users" view=Users>
+          <Route path=":id" view=SpecificUser/>
+          <Route path="test" view=|| view! {<h1>"Test user"</h1>}></Route>
+          <Route path="" view=|| view! {<h1>"Default user"</h1>}></Route>
+        </Route>
+        </Routes>
+        </Router>
+    }
+}
+
+#[component]
+fn Users() -> impl IntoView {
+    view! {
+        <div>
+        <h1>"Users" </h1>
+        <Outlet />
+        </div>
+    }
+}
+
+#[component]
+fn SpecificUser() -> impl IntoView {
+    let param = use_params::<UserParam>();
+    let param = move || {
+        param
+            .with(|params| params.clone().map(|params| params.id))
+            .unwrap_or_default()
+    };
+    view! {
+        <h1>"User id " {param()} </h1>
+    }
+}
+
+#[component]
+pub fn Home() -> impl IntoView {
+    view! {
+        <h1>"Home page"</h1>
+    }
+}
+#+end_src
+
+I had to also enable nightly flag for both router as well as the
+leptos crate to make it work.
+
+* The <A/> Component
+
+- Has integration with leptos router.
+- The router will bail out of handling an <a> click under a number of situations
+  - the click event has had prevent_default() called on it
+  - the Meta, Alt, Ctrl, or Shift keys were held during click
+  - the <a> has a target or download attribute, or rel="external"
+  - the link has a different origin from the current location
+
+Some code:
+
+#+begin_src rust
+#[component]
+pub fn App() -> impl IntoView {
+    view! {
+        <Router>
+        <Routes>
+        <Route path="/" view=Home/>
+        <Route path="/users" view=Users/>
+        <Route path="/me" view=move || view! {<h1>"Sibi"</h1>}/>
+        </Routes>
+        </Router>
+    }
+}
+
+#[component]
+fn Users() -> impl IntoView {
+    view! {
+        <div>
+        <h1>"Users" </h1>
+        <A href="/me">"Navigate to me!"</A>
+        </div>
+    }
+}
+
+#[component]
+pub fn Home() -> impl IntoView {
+    view! {
+        <h1>"Home page"</h1>
+    }
+}
+#+end_src
+
+* The <Form /> component
+
+- A <form method="GET">: Navigates to the URL in its action attribute
+  with the GET HTTP method and the form data from its inputs encoded
+  in the URL query string.
+- A <form method="POST">: Navigates to the URL in its action attribute
+  with the POST HTTP method and the form data from its inputs encoded
+  in the body of the request.
+- The router provides a <Form> component, which works like the HTML
+  <form> element, but uses client-side navigations instead of full
+  page reloads.
