@@ -1,0 +1,12 @@
+* Styling
+
+- Leptos has no opinions.
+- Comes with some tools and primtivies that allows you to build
+  styling libraries.
+
+* Libraries
+
+- cargo-leptos has built in Tailwind support.
+- [[https://github.com/abishekatp/stylers][https://github.com/abishekatp/stylers]]
+- [[https://github.com/basro/stylance-rs][https://github.com/basro/stylance-rs]]
+- [[https://github.com/eboody/styled][https://github.com/eboody/styled]]

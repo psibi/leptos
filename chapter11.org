@@ -1,0 +1,12 @@
+* Metadata
+
+- Motivation: Update something in the ~<head>~ component.
+- [[https://docs.rs/leptos_meta/latest/leptos_meta/][leptos_meta crate]]
+
+* Metadata components
+
+- ~<Title/>~
+- ~<Link>~
+- ~<Stylesheet />~
+- ~<Style />~
+- ~<Meta />~

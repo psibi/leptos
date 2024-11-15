@@ -1,5 +1,6 @@
 use ev::{MouseEvent, SubmitEvent};
 use leptos::*;
+use leptos_router::*;
 use std::thread;
 use std::time::Duration;
 
@@ -13,30 +14,29 @@ fn main() {
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <LoggedIn fallback=move || view!{<p>"Not logged in"</p>}>
-        <p>"I'm logged in"</p>
-        </LoggedIn>
+        <Router>
+        <Routes>
+        <Route path="/" view=Home/>
+        <Route path="/users" view=Users/>
+        <Route path="/me" view=move || view! {<h1>"Sibi"</h1>}/>
+        </Routes>
+        </Router>
     }
 }
 
 #[component]
-pub fn LoggedIn<F, IV>(fallback: F, children: ChildrenFn) -> impl IntoView
-where
-    F: Fn() -> IV + 'static,
-    IV: IntoView,
-{
+fn Users() -> impl IntoView {
     view! {
-        <Suspense
-            fallback=|| ()
-        >
-            <Show
-                // check whether user is verified
-                // by reading from the resource
-                when=move || todo!()
-                fallback=fallback
-            >
-                {children()}
-            </Show>
-        </Suspense>
+        <div>
+        <h1>"Users" </h1>
+        <A href="/me">"Navigate to me!"</A>
+        </div>
+    }
+}
+
+#[component]
+pub fn Home() -> impl IntoView {
+    view! {
+        <h1>"Home page"</h1>
     }
 }
