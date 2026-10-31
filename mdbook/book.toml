@@ -1,0 +1,11 @@
+[book]
+title = "Leptos Tutorial"
+description = "A hands-on tutorial for building web applications with Leptos"
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/psibi/leptos"
